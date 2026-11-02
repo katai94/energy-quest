@@ -1,4 +1,4 @@
-/* ENERGY QUEST - Firebase Realtime Database */
+/* ENERGY QUEST - Firebase Realtime Database (Auto-Grading Version) */
 const $ = id => document.getElementById(id);
 const COLORS = ["#8fe3b0","#ffd36a","#85b8ff","#e6a0ff","#ff9c82","#a6e56d"];
 const ICONS = {start:"⚡",question:"🔋",save:"🌱",luck:"🎁",challenge:"🚀"};
@@ -51,7 +51,7 @@ function listenRoom(){
     }
     render();
     if(room.question) watchQuestion(room.question);
-    else stopExtraListeners();
+    else { stopExtraListeners(); $("questionModal").classList.add("hidden"); }
   };
   roomRef.on("value",roomListener);
 }
@@ -64,9 +64,6 @@ function watchQuestion(q){
     submissionRef=db.ref("submissions/"+roomCode+"/"+qid);
     submissionListener=s=>{currentSubmissions=s.val()||{};renderQuestion();};
     submissionRef.on("value",submissionListener);
-    db.ref("answerKeys/"+roomCode+"/"+qid).once("value").then(s=>{
-      answerKey=s.val();renderQuestion();
-    }).catch(e=>console.error(e));
   }else if(role==="student" && myTeamId){
     submissionRef=db.ref("submissions/"+roomCode+"/"+qid+"/"+myTeamId);
     submissionListener=s=>{currentSubmissions[myTeamId]=s.val()||null;renderQuestion();};
@@ -157,7 +154,7 @@ function render(){
   if(room.question)renderQuestion();else $("questionModal").classList.add("hidden");
   if(role==="student"){
     const q=room.question;
-    $("studentStatus").textContent=!q?"รอครูเปิดคำถาม...":q.teamId===myTeamId?(currentSubmissions[myTeamId]?"ส่งคำตอบแล้ว รอครูตรวจ":"ถึงตาทีมของคุณ"):"กำลังเล่นทีมอื่น รอคิวทีมของคุณ";
+    $("studentStatus").textContent=!q?"รอครูเปิดคำถาม...":q.teamId===myTeamId?(currentSubmissions[myTeamId]?"ตอบคำถามแล้ว ระบบกำลังตรวจ...":"ถึงตาทีมของคุณ ตอบคำถามเพื่อเก็บแต้ม!"):"กำลังเล่นทีมอื่น รอคิวทีมของคุณ";
   }
 }
 function renderScores(list){
@@ -188,7 +185,7 @@ async function startGame(){
 }
 async function rollDice(){
   if(!teacher()||busy)return;
-  if(room.question){toast("ตรวจคำตอบก่อน");return;}
+  if(room.question){toast("รอตอบคำถามข้อปัจจุบันก่อน");return;}
   const id=$("activeTeam").value,t=room.teams?.[id];if(!t){toast("เลือกทีมก่อน");return;}
   busy=true;
   try{
@@ -201,92 +198,108 @@ async function rollDice(){
       const available=pool.filter(q=>{const i=window.ENERGY_QUESTIONS.indexOf(q);return !used[tile[0]+"_"+i];});
       const q=(available.length?available:pool)[Math.floor(Math.random()*(available.length||pool.length))];
       const qi=window.ENERGY_QUESTIONS.indexOf(q),qid="q"+Date.now();
-      const publicQ={id:qid,type:q.type,category:q.category,q:q.q,points:q.points??0,teamId:id,teamName:t.name,usedKey:tile[0]+"_"+qi,move:q.move||0};
-      // เฉลยเก็บแยก path ที่นักเรียนไม่มีสิทธิ์อ่าน
-      await db.ref("answerKeys/"+roomCode+"/"+qid).set({answer:q.a||"",eventText:q.q||""});
+      
+      const publicQ={
+        id:qid,
+        type:q.type,
+        category:q.category,
+        q:q.q,
+        options:q.options||[],
+        points:q.points??0,
+        teamId:id,
+        teamName:t.name,
+        usedKey:tile[0]+"_"+qi,
+        move:q.move||0
+      };
+
+      // เฉลยเก็บไว้แยกต่างหากที่นักเรียนเข้าอ่านไม่ได้
+      await db.ref("answerKeys/"+roomCode+"/"+qid).set({answer:q.a||""});
       updates.question=publicQ;
     }
     await roomRef.update(updates);toast("ทอยได้ "+roll);
   }catch(e){console.error(e);toast("ทอยเต๋าไม่สำเร็จ: "+e.message);}
   finally{busy=false;}
 }
+
 function renderQuestion(){
   const q=room?.question;if(!q)return;
   currentQuestion=q;
   $("questionCategory").textContent=q.category||"คำถามพลังงาน";
   $("questionNumber").textContent="QUESTION • "+q.id.slice(-5);
   $("questionText").textContent=q.q;
-  const isT=teacher(),myTurn=role==="student"&&q.teamId===myTeamId;
-  $("teacherAnswer").classList.toggle("hidden",!isT);
-  $("studentAnswer").classList.toggle("hidden",!myTurn);
-  if(isT){
-    $("answerKey").textContent=answerKey?"แนวคำตอบ: "+answerKey.answer+" • "+q.points+" คะแนน":"กำลังโหลดแนวคำตอบ...";
-    const entries=Object.entries(currentSubmissions||{});
-    $("answerArea").innerHTML=entries.length?entries.map(([tid,s])=>`<div class="submission-item"><b>${esc(room.teams?.[tid]?.name||"ทีม")}</b><p>${esc(s?.answer||"")}</p></div>`).join(""):'<div class="hint">รอคำตอบจากทีม...</div>';
+  
+  const myTurn=role==="student"&&q.teamId===myTeamId;
+  const container=$("optionsContainer");
+  container.innerHTML="";
+  
+  const submitted=currentSubmissions[myTeamId];
+
+  // สร้างปุ่มตัวเลือก
+  if(q.options && q.options.length > 0){
+    q.options.forEach(opt=>{
+      const btn=document.createElement("button");
+      btn.className="btn btn-secondary full option-btn";
+      btn.textContent=opt;
+      
+      if(!myTurn || submitted){
+        btn.disabled=true;
+      }else{
+        btn.onclick=()=>selectOption(opt);
+      }
+      container.appendChild(btn);
+    });
   }
-  if(myTurn){
-    const submitted=currentSubmissions[myTeamId];
-    $("submittedMessage").textContent=submitted?"ส่งคำตอบแล้ว: "+submitted.answer:"";
-    $("submitAnswer").disabled=!!submitted;
-  }
+
+  $("submittedMessage").textContent=submitted
+    ?"ทีมของคุณส่งคำตอบแล้ว: "+submitted.answer
+    :(myTurn?"เลือกคำตอบของทีมคุณ":"กำลังรอทีม "+esc(q.teamName)+" ตอบคำถาม...");
+
   $("questionModal").classList.remove("hidden");
 }
-async function submitAnswer(){
-  const q=room?.question,answer=$("answerInput").value.trim();
+
+async function selectOption(selectedAnswer){
+  const q=room?.question;
   if(role!=="student"||!myTeamId||!q||q.teamId!==myTeamId){toast("ยังไม่ถึงตาทีมของคุณ");return;}
-  if(!answer){toast("พิมพ์คำตอบก่อน");return;}
-  if(currentSubmissions[myTeamId]){toast("ส่งคำตอบแล้ว");return;}
-  try{
-    await db.ref("submissions/"+roomCode+"/"+q.id+"/"+myTeamId).set({answer,uid:myUid,at:Date.now()});
-    $("answerInput").value="";toast("ส่งคำตอบให้ครูแล้ว");
-  }catch(e){console.error(e);toast("ส่งคำตอบไม่สำเร็จ: "+e.message);}
-}
-async function judge(correct){
-  if(!teacher()||!room.question||busy)return;
-  busy=true;const q=room.question,id=q.teamId,t=room.teams?.[id];
-  if(!t){busy=false;toast("ไม่พบทีม");return;}
-  try{
-    const updates={question:null};
-    if(correct)updates["teams/"+id+"/score"]=(t.score||0)+(q.points||0);
-    if(q.move)updates["teams/"+id+"/position"]=Math.min(BOARD.length-1,(t.position||0)+q.move);
-    if(q.usedKey)updates["usedQuestions/"+q.usedKey]=true;
-    await roomRef.update(updates);
-    await db.ref("answerKeys/"+roomCode+"/"+q.id).remove();
-    toast(correct?"บันทึกคะแนนแล้ว":"บันทึกคำตอบไม่ถูกต้อง");
-  }catch(e){console.error(e);toast("บันทึกผลไม่สำเร็จ: "+e.message);}
-  finally{busy=false;}
-}
-async function nextTurn(){
-  if(!teacher()||busy)return;if(room.question){toast("ตรวจคำตอบก่อนเปลี่ยนทีม");return;}
-  const list=teams();if(!list.length)return;let i=list.findIndex(t=>t.id===room.activeTeamId);i=(i+1)%list.length;
-  try{await roomRef.update({activeTeamId:list[i].id,lastRoll:0});}catch(e){toast("เปลี่ยนทีมไม่สำเร็จ");}
-}
-async function resetGame(){
-  if(!teacher()||busy)return;if(!confirm("เริ่มเกมใหม่และล้างคะแนน/ตำแหน่งทุกทีมใช่หรือไม่?"))return;
+  if(currentSubmissions[myTeamId]||busy)return;
+
   busy=true;
   try{
-    const updates={lastRoll:0,question:null,usedQuestions:{},turnIndex:0};
-    teams().forEach(t=>{updates["teams/"+t.id+"/position"]=0;updates["teams/"+t.id+"/score"]=0;});
-    await roomRef.update(updates);toast("เริ่มเกมใหม่แล้ว");
-  }catch(e){toast("รีเซ็ตไม่สำเร็จ: "+e.message);}
-  finally{busy=false;}
-}
-async function closeRoom(){
-  if(!teacher()||!confirm("ปิดห้องเกมนี้ใช่หรือไม่?"))return;
-  try{await roomRef.update({status:"closed",question:null});toast("ปิดห้องแล้ว");}
-  catch(e){toast("ปิดห้องไม่สำเร็จ");}
-}
-$("teacherStart").onclick=createRoom;
-$("studentStart").onclick=joinRoom;
-$("joinRoomBtn").onclick=joinTeam;
-$("startGame").onclick=startGame;
-$("rollDice").onclick=rollDice;
-$("nextTurn").onclick=nextTurn;
-$("resetGame").onclick=resetGame;
-$("closeRoom").onclick=closeRoom;
-$("submitAnswer").onclick=submitAnswer;
-$("markCorrect").onclick=()=>judge(true);
-$("markWrong").onclick=()=>judge(false);
-$("closeQuestion").onclick=()=>{if(teacher())toast("ตรวจคำตอบก่อนปิดคำถาม");else $("questionModal").classList.add("hidden");};
-$("copyCode").onclick=()=>navigator.clipboard?.writeText(roomCode).then(()=>toast("คัดลอกรหัสห้องแล้ว")).catch(()=>toast("คัดลอกไม่ได้"));
-$("activeTeam").onchange=e=>{if(teacher()&&roomRef)roomRef.update({activeTeamId:e.target.value});};
+    // 1. บันทึกคำตอบ
+    await db.ref("submissions/"+roomCode+"/"+q.id+"/"+myTeamId).set({
+      answer:selectedAnswer,
+      uid:myUid,
+      at:Date.now()
+    });
+
+    // 2. ดึงเฉลยมาตรวจคะแนนอัตโนมัติ
+    const snap=await db.ref("answerKeys/"+roomCode+"/"+q.id).once("value");
+    const key=snap.val();
+    const isCorrect=key && key.answer===selectedAnswer;
+
+    // 3. บันทึกผลคะแนนและตำแหน่งลง Realtime Database
+    const id=q.teamId, t=room.teams?.[id];
+    const updates={question:null};
+
+    if(isCorrect){
+      updates["teams/"+id+"/score"]=(t?.score||0)+(q.points||0);
+      toast("ถูกต้อง! ได้รับ "+q.points+" คะแนน");
+    }else{
+      toast("คำตอบไม่ถูกต้อง!");
+    }
+
+    if(q.move){
+      updates["teams/"+id+"/position"]=Math.min(BOARD.length-1,(t?.position||0)+q.move);
+    }
+    if(q.usedKey){
+      updates["usedQuestions/"+q.usedKey]=true;
+    }
+
+    await roomRef.update(updates);
+    await db.ref("answerKeys/"+roomCode+"/"+q.id).remove();
+
+  }catch(e){
+    console.error(e);
+    toast("เกิดข้อผิดพลาดในการตรวจคำตอบ");
+  }finally{
+    busy=false;
+  }
