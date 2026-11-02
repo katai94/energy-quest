@@ -79,7 +79,7 @@
             <button id="resetGame" class="btn btn-ghost full">เริ่มเกมใหม่</button>
           </div>
           <div class="panel student-controls hidden" id="studentControls">
-            <h3>📱 พื้นที่ส่งคำตอบ</h3><p class="muted">เมื่อครูเปิดคำถาม ให้สมาชิกช่วยกันคิดแล้วส่งคำตอบของทีม</p>
+            <h3>📱 พื้นที่ส่งคำตอบ</h3><p class="muted">เมื่อครูเปิดคำถาม ให้สมาชิกช่วยกันคิดแล้วเลือกคำตอบของทีม</p>
             <div id="studentStatus" class="status-box">รอครูเปิดคำถาม...</div>
           </div>
         </aside>
@@ -87,23 +87,23 @@
     </section>
   </main>
 
+  <!-- Modal แสดงคำถามและปุ่มตัวเลือก -->
   <div id="questionModal" class="modal hidden">
     <div class="modal-card">
-      <div class="modal-top"><span id="questionCategory" class="category-tag">คำถามพลังงาน</span><button class="icon-btn" id="closeQuestion">✕</button></div>
+      <div class="modal-top">
+        <span id="questionCategory" class="category-tag">คำถามพลังงาน</span>
+        <button class="icon-btn" id="closeQuestion">✕</button>
+      </div>
       <div class="question-number" id="questionNumber">QUESTION 01</div>
       <h2 id="questionText">คำถามจะแสดงที่นี่</h2>
-      <div id="answerArea"></div>
-      <div id="teacherAnswer" class="hidden">
-        <div class="answer-key" id="answerKey"></div>
-        <div class="judge-row"><button id="markWrong" class="btn btn-danger">✕ ไม่ถูกต้อง</button><button id="markCorrect" class="btn btn-primary">✓ ถูกต้อง</button></div>
-      </div>
-      <div id="studentAnswer" class="hidden">
-        <textarea id="answerInput" rows="3" placeholder="พิมพ์คำตอบของทีม..."></textarea>
-        <button id="submitAnswer" class="btn btn-primary full">ส่งคำตอบให้ครู</button>
-        <div id="submittedMessage" class="hint"></div>
-      </div>
+      
+      <!-- พื้นที่สำหรับสร้างปุ่มตัวเลือกปรนัย -->
+      <div id="optionsContainer" class="options-grid"></div>
+      
+      <div id="submittedMessage" class="hint text-center" style="margin-top:15px;"></div>
     </div>
   </div>
+
   <div id="toast" class="toast"></div>
   <footer>ENERGY QUEST • สื่อการเรียนรู้เรื่องแหล่งพลังงาน • ปรับใช้ซ้ำได้ทุกห้องเรียน</footer>
 
