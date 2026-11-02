@@ -376,50 +376,56 @@ function renderQuestion(){
 }
 
 async function selectOption(selectedAnswer){
-  const q=room?.question;
-  if(role!=="student"||!myTeamId||!q||q.teamId!==myTeamId){ toast("ยังไม่ถึงตาทีมของคุณ"); return; }
-  if(currentSubmissions[myTeamId]||busy) return;
+  const q = room?.question;
+  if(role !== "student" || !myTeamId || !q || q.teamId !== myTeamId) {
+    toast("ยังไม่ถึงตาทีมของคุณ");
+    return;
+  }
+  if(currentSubmissions[myTeamId] || busy) return;
 
-  busy=true;
-  try{
-    await db.ref("submissions/"+roomCode+"/"+q.id+"/"+myTeamId).set({
-      answer:selectedAnswer,
-      uid:myUid,
-      at:Date.now()
+  busy = true;
+  try {
+    // 1. บันทึกคำตอบของทีม
+    await db.ref("submissions/" + roomCode + "/" + q.id + "/" + myTeamId).set({
+      answer: selectedAnswer,
+      uid: myUid,
+      at: Date.now()
     });
 
-    const snap=await db.ref("answerKeys/"+roomCode+"/"+q.id).once("value");
-    const key=snap.val();
-    const isCorrect=key && key.answer===selectedAnswer;
+    // 2. อ่านเฉลยมาตรวจคะแนน
+    const snap = await db.ref("answerKeys/" + roomCode + "/" + q.id).once("value");
+    const key = snap.val();
+    const isCorrect = key && key.answer === selectedAnswer;
 
-    const id=q.teamId, t=room.teams?.[id];
-    const updates={question:null};
+    // 3. เตรียมข้อมูลการอัปเดต
+    const id = q.teamId;
+    const t = room.teams?.[id];
+    const updates = { question: null };
 
     if(isCorrect){
-      updates["teams/"+id+"/score"]=(t?.score||0)+(q.points||0);
-      toast("ถูกต้อง! ได้รับ "+q.points+" คะแนน");
+      updates["teams/" + id + "/score"] = (t?.score || 0) + (q.points || 0);
+      toast("ถูกต้อง! ได้รับ " + q.points + " คะแนน");
     } else {
       toast("คำตอบไม่ถูกต้อง!");
     }
 
     if(q.move){
-      updates["teams/"+id+"/position"]=Math.min(BOARD.length-1,(t?.position||0)+q.move);
+      updates["teams/" + id + "/position"] = Math.min(BOARD.length - 1, (t?.position || 0) + q.move);
     }
     if(q.usedKey){
-      updates["usedQuestions/"+q.usedKey]=true;
+      updates["usedQuestions/" + q.usedKey] = true;
     }
 
+    // 4. อัปเดตสถานะห้องเกม
     await roomRef.update(updates);
-    await db.ref("answerKeys/"+roomCode+"/"+q.id).remove();
 
-  } catch(e){
-    console.error(e);
+  } catch(e) {
+    console.error("Select Option Error:", e);
     toast("เกิดข้อผิดพลาดในการตรวจคำตอบ");
   } finally {
-    busy=false;
+    busy = false;
   }
 }
-
 async function nextTurn(){
   if(!teacher()||busy) return;
   if(room.question){ toast("รอตอบคำถามก่อนเปลี่ยนทีม"); return; }
