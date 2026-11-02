@@ -1,4 +1,5 @@
-
+// Firebase Web App configuration
+// หมายเหตุ: apiKey ของ Firebase Web App เป็นค่าระบุโปรเจกต์ ไม่ใช่ service account key
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyD8Vd3Y3EeTj80JlS_x-p1IlZwu2Jj8AIg",
   authDomain: "energy-quest-44065.firebaseapp.com",

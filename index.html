@@ -5,338 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#073b35">
   <title>ENERGY QUEST — เกมเศรษฐีพลังงาน</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <div class="ambient a1"></div>
-  <div class="ambient a2"></div>
-
+  <div class="ambient a1"></div><div class="ambient a2"></div>
   <header class="topbar">
-    <a class="brand" href="#">
-      <span class="brand-icon">⚡</span>
-      <span>
-        ENERGY<span class="brand-light">QUEST</span>
-        <small>เกมเศรษฐีพลังงาน</small>
-      </span>
-    </a>
-
-    <div class="top-actions">
-      <span class="live-dot"></span>
-      <span id="connectionText">พร้อมเริ่มเกม</span>
-    </div>
+    <a class="brand" href="#"><span class="brand-icon">⚡</span><span>ENERGY<span class="brand-light">QUEST</span><small>เกมเศรษฐีพลังงาน</small></span></a>
+    <div class="top-actions"><span class="live-dot"></span><span id="connectionText">พร้อมเริ่มเกม</span></div>
   </header>
 
   <main class="shell">
-
-    <!-- HOME -->
     <section id="homeView" class="hero-grid">
-
       <div class="hero-copy">
         <div class="eyebrow">POWER UP YOUR KNOWLEDGE</div>
-
-        <h1>
-          ภารกิจพิชิต<br>
-          <em>อาณาจักรพลังงาน</em>
-        </h1>
-
-        <p>
-          ทอยเต๋า เดินบนกระดาน ตอบคำถาม และวางแผนใช้พลังงานอย่างรู้คุณค่า
-          ใครสะสมคะแนนได้มากที่สุดคือผู้ชนะ!
-        </p>
-
-        <div class="hero-points">
-          <span>⚡ เรียนรู้ผ่านเกม</span>
-          <span>🌱 พลังงานยั่งยืน</span>
-          <span>👥 เล่นเป็นทีม</span>
-        </div>
+        <h1>ภารกิจพิชิต<br><em>อาณาจักรพลังงาน</em></h1>
+        <p>ทอยเต๋า เดินบนกระดาน ตอบคำถาม และวางแผนใช้พลังงานอย่างรู้คุณค่า ใครสะสมคะแนนได้มากที่สุดคือผู้ชนะ!</p>
+        <div class="hero-points"><span>⚡ เรียนรู้ผ่านเกม</span><span>🌱 พลังงานยั่งยืน</span><span>👥 เล่นเป็นทีม</span></div>
       </div>
-
       <div class="portal-card">
-        <div class="portal-orbit">
-          <div class="planet">⚡</div>
-          <span class="orbit-dot"></span>
-        </div>
-
+        <div class="portal-orbit"><div class="planet">⚡</div><span class="orbit-dot"></span></div>
         <h2>เริ่มต้นการผจญภัย</h2>
         <p>เลือกบทบาทเพื่อเข้าสู่ห้องเกม</p>
-
-        <button class="btn btn-primary" id="teacherStart">
-          🎓 สร้างห้องสำหรับครู
-        </button>
-
-        <div class="or-line">
-          <span>หรือ</span>
-        </div>
-
-        <div class="join-row">
-          <input
-            id="joinCode"
-            maxlength="6"
-            placeholder="รหัสห้อง 6 หลัก"
-            aria-label="รหัสห้อง"
-          >
-
-          <button class="btn btn-secondary" id="studentStart">
-            เข้าร่วม
-          </button>
-        </div>
-
-        <div class="hint">
-          นักเรียนเข้าร่วมผ่านมือถือด้วยรหัสห้องเดียวกัน
-        </div>
+        <button class="btn btn-primary" id="teacherStart">🎓 สร้างห้องสำหรับครู</button>
+        <div class="or-line"><span>หรือ</span></div>
+        <div class="join-row"><input id="joinCode" maxlength="6" placeholder="รหัสห้อง 6 หลัก" aria-label="รหัสห้อง"><button class="btn btn-secondary" id="studentStart">เข้าร่วม</button></div>
+        <div class="hint">นักเรียนเข้าร่วมผ่านมือถือด้วยรหัสห้องเดียวกัน</div>
       </div>
-
     </section>
 
-    <!-- LOBBY -->
     <section id="lobbyView" class="hidden">
-
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">GAME LOBBY</div>
-          <h1>ห้องเตรียมความพร้อม</h1>
-        </div>
-
-        <div class="room-pill">
-          ROOM
-          <strong id="roomCodeLabel">------</strong>
-          <button id="copyCode" title="คัดลอกรหัส">⧉</button>
-        </div>
-      </div>
-
+      <div class="section-head"><div><div class="eyebrow">GAME LOBBY</div><h1>ห้องเตรียมความพร้อม</h1></div><div class="room-pill">ROOM <strong id="roomCodeLabel">------</strong><button id="copyCode" title="คัดลอกรหัส">⧉</button></div></div>
       <div class="lobby-grid">
-
         <div class="panel">
-          <h3>
-            👥 ทีมผู้เล่น
-            <span class="muted" id="teamCount">0 ทีม</span>
-          </h3>
-
-          <div id="teamList" class="team-list">
-            <div class="empty">กำลังรอทีมเข้าร่วม...</div>
-          </div>
-
-          <div id="teacherLobbyControls">
-            <button
-              id="startGame"
-              class="btn btn-primary full"
-              disabled
-            >
-              เริ่มเกม →
-            </button>
-
-            <button id="closeRoom" class="btn btn-ghost full">
-              ปิดห้อง
-            </button>
-          </div>
+          <h3>👥 ทีมผู้เล่น <span class="muted" id="teamCount">0 ทีม</span></h3>
+          <div id="teamList" class="team-list"><div class="empty">กำลังรอทีมเข้าร่วม...</div></div>
+          <div id="teacherLobbyControls"><button id="startGame" class="btn btn-primary full" disabled>เริ่มเกม →</button><button id="closeRoom" class="btn btn-ghost full">ปิดห้อง</button></div>
         </div>
-
         <div class="panel join-panel">
           <div class="join-illustration">🌞</div>
-
-          <h2 id="lobbyTitle">
-            ยินดีต้อนรับสู่ ENERGY QUEST
-          </h2>
-
-          <p id="lobbyInstructions">
-            ให้นักเรียนเปิดเว็บนี้บนมือถือ แล้วกรอกรหัสห้อง
-          </p>
-
+          <h2 id="lobbyTitle">ยินดีต้อนรับสู่ ENERGY QUEST</h2>
+          <p id="lobbyInstructions">ให้นักเรียนเปิดเว็บนี้บนมือถือ แล้วกรอกรหัสห้อง</p>
           <div id="studentJoinForm" class="hidden">
-
-            <label>ชื่อทีม</label>
-            <input
-              id="teamName"
-              maxlength="24"
-              placeholder="เช่น ทีมสายฟ้า"
-            >
-
-            <label>สมาชิกในทีม (4–6 คน)</label>
-            <input
-              id="memberNames"
-              placeholder="ใส่ชื่อสมาชิก คั่นด้วยเครื่องหมายจุลภาค"
-            >
-
-            <button id="joinRoomBtn" class="btn btn-primary full">
-              เข้าร่วมเกม
-            </button>
-
+            <label>ชื่อทีม</label><input id="teamName" maxlength="24" placeholder="เช่น ทีมสายฟ้า">
+            <label>สมาชิกในทีม (4–6 คน)</label><input id="memberNames" placeholder="ใส่ชื่อสมาชิก คั่นด้วยเครื่องหมายจุลภาค">
+            <button id="joinRoomBtn" class="btn btn-primary full">เข้าร่วมเกม</button>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- GAME -->
     <section id="gameView" class="hidden">
-
       <div class="game-head">
-        <div>
-          <div class="eyebrow">ENERGY QUEST / LIVE MATCH</div>
-          <h1>กระดานพิชิตพลังงาน</h1>
-        </div>
-
-        <div class="room-pill">
-          ROOM
-          <strong id="gameRoomCode">------</strong>
-        </div>
+        <div><div class="eyebrow">ENERGY QUEST / LIVE MATCH</div><h1>กระดานพิชิตพลังงาน</h1></div>
+        <div class="room-pill">ROOM <strong id="gameRoomCode">------</strong></div>
       </div>
-
       <div class="game-layout">
-
         <div class="board-wrap panel">
-
-          <div class="board-top">
-            <span>🌿 ENERGY WORLD</span>
-            <span class="turn-label" id="turnLabel">รอเริ่มเกม</span>
-          </div>
-
+          <div class="board-top"><span>🌿 ENERGY WORLD</span><span class="turn-label" id="turnLabel">รอเริ่มเกม</span></div>
           <div id="board" class="board"></div>
-
-          <div class="board-legend">
-            <span>🟩 คำถามพลังงาน</span>
-            <span>🟨 ประหยัดพลังงาน</span>
-            <span>🟪 เสี่ยงโชค</span>
-            <span>🟥 ท้าทาย</span>
-          </div>
-
+          <div class="board-legend"><span>🟩 คำถามพลังงาน</span><span>🟨 ประหยัดพลังงาน</span><span>🟪 เสี่ยงโชค</span><span>🟥 ท้าทาย</span></div>
         </div>
-
         <aside class="side-column">
-
-          <div class="panel score-panel">
-            <h3>🏆 ตารางคะแนน</h3>
-            <div id="scoreList"></div>
-          </div>
-
+          <div class="panel score-panel"><h3>🏆 ตารางคะแนน</h3><div id="scoreList"></div></div>
           <div class="panel control-panel" id="teacherControls">
-
             <h3>🎮 แผงควบคุมครู</h3>
-
-            <div class="dice-row">
-              <div class="dice" id="diceFace">⚄</div>
-
-              <div>
-                <b id="diceResult">พร้อมทอยเต๋า</b>
-                <small>เลือกทีมแล้วกดทอยเต๋า</small>
-              </div>
-            </div>
-
-            <label>ทีมที่กำลังเล่น</label>
-            <select id="activeTeam"></select>
-
-            <button id="rollDice" class="btn btn-primary full">
-              🎲 ทอยลูกเต๋า
-            </button>
-
-            <button id="nextTurn" class="btn btn-secondary full">
-              จบตา / ทีมถัดไป
-            </button>
-
-            <button id="resetGame" class="btn btn-ghost full">
-              เริ่มเกมใหม่
-            </button>
-
+            <div class="dice-row"><div class="dice" id="diceFace">⚄</div><div><b id="diceResult">พร้อมทอยเต๋า</b><small>เลือกทีมแล้วกดทอยเต๋า</small></div></div>
+            <label>ทีมที่กำลังเล่น</label><select id="activeTeam"></select>
+            <button id="rollDice" class="btn btn-primary full">🎲 ทอยลูกเต๋า</button>
+            <button id="nextTurn" class="btn btn-secondary full">จบตา / ทีมถัดไป</button>
+            <button id="resetGame" class="btn btn-ghost full">เริ่มเกมใหม่</button>
           </div>
-
           <div class="panel student-controls hidden" id="studentControls">
-
-            <h3>📱 พื้นที่ส่งคำตอบ</h3>
-
-            <p class="muted">
-              เมื่อครูเปิดคำถาม ให้สมาชิกช่วยกันคิดแล้วส่งคำตอบของทีม
-            </p>
-
-            <div id="studentStatus" class="status-box">
-              รอครูเปิดคำถาม...
-            </div>
-
+            <h3>📱 พื้นที่ส่งคำตอบ</h3><p class="muted">เมื่อครูเปิดคำถาม ให้สมาชิกช่วยกันคิดแล้วส่งคำตอบของทีม</p>
+            <div id="studentStatus" class="status-box">รอครูเปิดคำถาม...</div>
           </div>
-
         </aside>
       </div>
     </section>
-
   </main>
 
-  <!-- QUESTION MODAL -->
   <div id="questionModal" class="modal hidden">
-
     <div class="modal-card">
-
-      <div class="modal-top">
-        <span id="questionCategory" class="category-tag">
-          คำถามพลังงาน
-        </span>
-
-        <button class="icon-btn" id="closeQuestion">✕</button>
-      </div>
-
-      <div class="question-number" id="questionNumber">
-        QUESTION 01
-      </div>
-
+      <div class="modal-top"><span id="questionCategory" class="category-tag">คำถามพลังงาน</span><button class="icon-btn" id="closeQuestion">✕</button></div>
+      <div class="question-number" id="questionNumber">QUESTION 01</div>
       <h2 id="questionText">คำถามจะแสดงที่นี่</h2>
-
       <div id="answerArea"></div>
-
       <div id="teacherAnswer" class="hidden">
-
         <div class="answer-key" id="answerKey"></div>
-
-        <div class="judge-row">
-          <button id="markWrong" class="btn btn-danger">
-            ✕ ไม่ถูกต้อง
-          </button>
-
-          <button id="markCorrect" class="btn btn-primary">
-            ✓ ถูกต้อง
-          </button>
-        </div>
-
+        <div class="judge-row"><button id="markWrong" class="btn btn-danger">✕ ไม่ถูกต้อง</button><button id="markCorrect" class="btn btn-primary">✓ ถูกต้อง</button></div>
       </div>
-
       <div id="studentAnswer" class="hidden">
-
-        <textarea
-          id="answerInput"
-          rows="3"
-          placeholder="พิมพ์คำตอบของทีม..."
-        ></textarea>
-
-        <button id="submitAnswer" class="btn btn-primary full">
-          ส่งคำตอบให้ครู
-        </button>
-
+        <textarea id="answerInput" rows="3" placeholder="พิมพ์คำตอบของทีม..."></textarea>
+        <button id="submitAnswer" class="btn btn-primary full">ส่งคำตอบให้ครู</button>
         <div id="submittedMessage" class="hint"></div>
-
       </div>
-
     </div>
   </div>
-
   <div id="toast" class="toast"></div>
+  <footer>ENERGY QUEST • สื่อการเรียนรู้เรื่องแหล่งพลังงาน • ปรับใช้ซ้ำได้ทุกห้องเรียน</footer>
 
-  <footer>
-    ENERGY QUEST • สื่อการเรียนรู้เรื่องแหล่งพลังงาน • ปรับใช้ซ้ำได้ทุกห้องเรียน
-  </footer>
-
-  <!-- FIREBASE SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-  <!-- GAME FILES -->
   <script src="firebase-config.js"></script>
   <script src="questions.js"></script>
   <script src="app.js"></script>
-
 </body>
 </html>

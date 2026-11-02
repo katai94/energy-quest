@@ -1,0 +1,80 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+        "teacherUid": {
+          ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
+          ".validate": "newData.isString()"
+        },
+        "createdAt": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "status": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "turnIndex": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "activeTeamId": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "lastRoll": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "boardSize": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "usedQuestions": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "question": {
+          ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+        },
+        "teams": {
+          "$team": {
+            "uid": {
+              ".write": "auth != null && !data.exists() && newData.val() === auth.uid && root.child('rooms').child($room).child('status').val() === 'lobby'"
+            },
+            "name": {
+              ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('status').val() === 'lobby' && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid"
+            },
+            "members": {
+              ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('status').val() === 'lobby' && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid"
+            },
+            "color": {
+              ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('status').val() === 'lobby' && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid"
+            },
+            "joinedAt": {
+              ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('status').val() === 'lobby' && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid"
+            },
+            "position": {
+              ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+            },
+            "score": {
+              ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+            }
+          }
+        }
+      }
+    },
+    "answerKeys": {
+      "$room": {
+        ".read": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid",
+        ".write": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid"
+      }
+    },
+    "submissions": {
+      "$room": {
+        ".read": "auth != null && root.child('rooms').child($room).child('teacherUid').val() === auth.uid",
+        "$question": {
+          "$team": {
+            ".read": "auth != null && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid",
+            ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('teams').child($team).child('uid').val() === auth.uid && root.child('rooms').child($room).child('question').child('id').val() === $question && root.child('rooms').child($room).child('question').child('teamId').val() === $team && newData.child('uid').val() === auth.uid",
+            ".validate": "newData.hasChildren(['answer','uid','at'])"
+          }
+        }
+      }
+    }
+  }
+}
