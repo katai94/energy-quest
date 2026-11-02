@@ -1,4 +1,4 @@
-/* ENERGY QUEST - Firebase Realtime Database (Client Auto-Grading Version) */
+/* ENERGY QUEST - Firebase Realtime Database (Auto-Grading Version) */
 const $ = id => document.getElementById(id);
 const COLORS = ["#8fe3b0","#ffd36a","#85b8ff","#e6a0ff","#ff9c82","#a6e56d"];
 const ICONS = {start:"⚡",question:"🔋",save:"🌱",luck:"🎁",challenge:"🚀"};
@@ -312,7 +312,6 @@ async function rollDice(){
       const q=(available.length?available:pool)[Math.floor(Math.random()*(available.length||pool.length))];
       const qi=window.ENERGY_QUESTIONS.indexOf(q), qid="q"+Date.now();
       
-      // แนบคำตอบเฉลยไปที่ตัวคำถามโดยตรงเพื่อลดขั้นตอนดึง DB
       const publicQ={
         id:qid,
         type:q.type,
@@ -383,14 +382,12 @@ async function selectOption(selectedAnswer){
 
   busy=true;
   try{
-    // 1. บันทึกคำตอบส่งให้ครูเห็น
     await db.ref("submissions/"+roomCode+"/"+q.id+"/"+myTeamId).set({
       answer:selectedAnswer,
       uid:myUid,
       at:Date.now()
     });
 
-    // 2. ตรวจคำตอบกับเฉลยในตัวโจทย์โดยตรง
     const isCorrect=q.a && q.a===selectedAnswer;
 
     const id=q.teamId, t=room.teams?.[id];
@@ -410,7 +407,6 @@ async function selectOption(selectedAnswer){
       updates["usedQuestions/"+q.usedKey]=true;
     }
 
-    // 3. ปิดโจทย์และอัปเดตคะแนนขึ้นหน้าจอทุกคนทันที
     await roomRef.update(updates);
 
   } catch(e){
