@@ -1,4 +1,4 @@
-/* ENERGY QUEST - Firebase Realtime Database (Auto-Grading Version) */
+/* ENERGY QUEST - Firebase Realtime Database (Client Auto-Grading Version) */
 const $ = id => document.getElementById(id);
 const COLORS = ["#8fe3b0","#ffd36a","#85b8ff","#e6a0ff","#ff9c82","#a6e56d"];
 const ICONS = {start:"⚡",question:"🔋",save:"🌱",luck:"🎁",challenge:"🚀"};
@@ -298,7 +298,7 @@ async function startGame(){
 
 async function rollDice(){
   if(!teacher()||busy) return;
-  if(room.question){ toast("รอตอบคำถามข้อปัจจุบันก่อน"); return; }
+  if(room.question){ toast("รอตอบคำถามก่อน"); return; }
   const id=$("activeTeam")?.value, t=room.teams?.[id]; if(!t){ toast("เลือกทีมก่อน"); return; }
   busy=true;
   try{
@@ -312,12 +312,14 @@ async function rollDice(){
       const q=(available.length?available:pool)[Math.floor(Math.random()*(available.length||pool.length))];
       const qi=window.ENERGY_QUESTIONS.indexOf(q), qid="q"+Date.now();
       
+      // แนบคำตอบเฉลยไปที่ตัวคำถามโดยตรงเพื่อลดขั้นตอนดึง DB
       const publicQ={
         id:qid,
         type:q.type,
         category:q.category,
         q:q.q,
         options:q.options||[],
+        a:q.a||"", 
         points:q.points??0,
         teamId:id,
         teamName:t.name,
@@ -325,7 +327,6 @@ async function rollDice(){
         move:q.move||0
       };
 
-      await db.ref("answerKeys/"+roomCode+"/"+qid).set({answer:q.a||""});
       updates.question=publicQ;
     }
     await roomRef.update(updates);
@@ -376,56 +377,50 @@ function renderQuestion(){
 }
 
 async function selectOption(selectedAnswer){
-  const q = room?.question;
-  if(role !== "student" || !myTeamId || !q || q.teamId !== myTeamId) {
-    toast("ยังไม่ถึงตาทีมของคุณ");
-    return;
-  }
-  if(currentSubmissions[myTeamId] || busy) return;
+  const q=room?.question;
+  if(role!=="student"||!myTeamId||!q||q.teamId!==myTeamId){ toast("ยังไม่ถึงตาทีมของคุณ"); return; }
+  if(currentSubmissions[myTeamId]||busy) return;
 
-  busy = true;
-  try {
-    // 1. บันทึกคำตอบของทีม
-    await db.ref("submissions/" + roomCode + "/" + q.id + "/" + myTeamId).set({
-      answer: selectedAnswer,
-      uid: myUid,
-      at: Date.now()
+  busy=true;
+  try{
+    // 1. บันทึกคำตอบส่งให้ครูเห็น
+    await db.ref("submissions/"+roomCode+"/"+q.id+"/"+myTeamId).set({
+      answer:selectedAnswer,
+      uid:myUid,
+      at:Date.now()
     });
 
-    // 2. อ่านเฉลยมาตรวจคะแนน
-    const snap = await db.ref("answerKeys/" + roomCode + "/" + q.id).once("value");
-    const key = snap.val();
-    const isCorrect = key && key.answer === selectedAnswer;
+    // 2. ตรวจคำตอบกับเฉลยในตัวโจทย์โดยตรง
+    const isCorrect=q.a && q.a===selectedAnswer;
 
-    // 3. เตรียมข้อมูลการอัปเดต
-    const id = q.teamId;
-    const t = room.teams?.[id];
-    const updates = { question: null };
+    const id=q.teamId, t=room.teams?.[id];
+    const updates={question:null};
 
     if(isCorrect){
-      updates["teams/" + id + "/score"] = (t?.score || 0) + (q.points || 0);
-      toast("ถูกต้อง! ได้รับ " + q.points + " คะแนน");
+      updates["teams/"+id+"/score"]=(t?.score||0)+(q.points||0);
+      toast("ถูกต้อง! ได้รับ "+q.points+" คะแนน");
     } else {
       toast("คำตอบไม่ถูกต้อง!");
     }
 
     if(q.move){
-      updates["teams/" + id + "/position"] = Math.min(BOARD.length - 1, (t?.position || 0) + q.move);
+      updates["teams/"+id+"/position"]=Math.min(BOARD.length-1,(t?.position||0)+q.move);
     }
     if(q.usedKey){
-      updates["usedQuestions/" + q.usedKey] = true;
+      updates["usedQuestions/"+q.usedKey]=true;
     }
 
-    // 4. อัปเดตสถานะห้องเกม
+    // 3. ปิดโจทย์และอัปเดตคะแนนขึ้นหน้าจอทุกคนทันที
     await roomRef.update(updates);
 
-  } catch(e) {
-    console.error("Select Option Error:", e);
-    toast("เกิดข้อผิดพลาดในการตรวจคำตอบ");
+  } catch(e){
+    console.error(e);
+    toast("ส่งคำตอบไม่สำเร็จ: "+e.message);
   } finally {
-    busy = false;
+    busy=false;
   }
 }
+
 async function nextTurn(){
   if(!teacher()||busy) return;
   if(room.question){ toast("รอตอบคำถามก่อนเปลี่ยนทีม"); return; }
