@@ -15,30 +15,14 @@ const ICONS = {
 };
 
 const BOARD = [
-  ["start", "START"],
-  ["question", "พลังงาน"],
-  ["save", "ประหยัด"],
-  ["question", "พลังงาน"],
-  ["luck", "เสี่ยงโชค"],
-  ["question", "พลังงาน"],
-  ["question", "พลังงาน"],
-  ["save", "ประหยัด"],
-  ["question", "พลังงาน"],
-  ["challenge", "ท้าทาย"],
-  ["save", "ประหยัด"],
-  ["question", "พลังงาน"],
-  ["question", "พลังงาน"],
-  ["luck", "เสี่ยงโชค"],
-  ["save", "ประหยัด"],
-  ["question", "พลังงาน"],
-  ["question", "พลังงาน"],
-  ["save", "ประหยัด"],
-  ["save", "ประหยัด"],
-  ["question", "พลังงาน"],
-  ["challenge", "ท้าทาย"],
-  ["question", "พลังงาน"],
-  ["luck", "เสี่ยงโชค"],
-  ["question", "พลังงาน"]
+  ["start","START"],["question","พลังงาน"],["save","ประหยัด"],
+  ["question","พลังงาน"],["luck","เสี่ยงโชค"],["question","พลังงาน"],
+  ["question","พลังงาน"],["save","ประหยัด"],["question","พลังงาน"],
+  ["challenge","ท้าทาย"],["save","ประหยัด"],["question","พลังงาน"],
+  ["question","พลังงาน"],["luck","เสี่ยงโชค"],["save","ประหยัด"],
+  ["question","พลังงาน"],["question","พลังงาน"],["save","ประหยัด"],
+  ["save","ประหยัด"],["question","พลังงาน"],["challenge","ท้าทาย"],
+  ["question","พลังงาน"],["luck","เสี่ยงโชค"],["question","พลังงาน"]
 ];
 
 let db = null;
@@ -54,7 +38,7 @@ let currentQuestion = null;
 let busy = false;
 
 // =====================================
-// FIREBASE INITIALIZATION
+// FIREBASE
 // =====================================
 
 const validConfig =
@@ -64,7 +48,6 @@ const validConfig =
 
 if (validConfig) {
   firebase.initializeApp(window.FIREBASE_CONFIG);
-
   db = firebase.database();
   auth = firebase.auth();
 
@@ -80,8 +63,38 @@ if (validConfig) {
   $("connectionText").textContent = "กรุณาตั้งค่า Firebase";
 }
 
+async function ensureSignedIn() {
+  if (!auth) throw new Error("ไม่พบ Firebase Authentication");
+
+  if (auth.currentUser) {
+    myUid = auth.currentUser.uid;
+    return auth.currentUser;
+  }
+
+  const result = await auth.signInAnonymously();
+  myUid = result.user.uid;
+  return result.user;
+}
+
+function needFirebase() {
+  if (!db || !auth) {
+    toast("กรุณาตั้งค่า Firebase ก่อนใช้งาน");
+    return false;
+  }
+  return true;
+}
+
+function isTeacher() {
+  return !!(
+    role === "teacher" &&
+    room &&
+    myUid &&
+    room.teacherUid === myUid
+  );
+}
+
 // =====================================
-// BASIC FUNCTIONS
+// BASIC
 // =====================================
 
 function show(view) {
@@ -93,67 +106,28 @@ function show(view) {
 function toast(message) {
   $("toast").textContent = message;
   $("toast").classList.add("show");
-
-  setTimeout(() => {
-    $("toast").classList.remove("show");
-  }, 2600);
+  setTimeout(() => $("toast").classList.remove("show"), 2600);
 }
 
 function code() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function needFirebase() {
-  if (!db || !auth) {
-    toast("กรุณาตั้งค่า Firebase ก่อนใช้งาน");
-    return false;
-  }
-  return true;
-}
-
-async function ensureSignedIn() {
-  if (!auth) {
-    throw new Error("ไม่พบ Firebase Authentication");
-  }
-
-  if (auth.currentUser) {
-    myUid = auth.currentUser.uid;
-    return auth.currentUser;
-  }
-
-  const result = await auth.signInAnonymously();
-  myUid = result.user.uid;
-
-  return result.user;
-}
-
-function isTeacher() {
-  return role === "teacher" &&
-    !!room &&
-    room.teacherUid === myUid;
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  }[c]));
 }
 
 function teamArray() {
   return Object.entries(room?.teams || {}).map(([id, team]) => ({
-    id,
-    ...team
+    id, ...team
   }));
 }
 
-function esc(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[char]));
-}
-
 function stopSubscription() {
-  if (roomRef && unsubscribe) {
-    roomRef.off("value", unsubscribe);
-  }
+  if (roomRef && unsubscribe) roomRef.off("value", unsubscribe);
   unsubscribe = null;
 }
 
@@ -169,6 +143,12 @@ function subscribe() {
       return;
     }
 
+    // คืนค่าทีมเดิมให้นักเรียนเมื่อรีเฟรชหน้า
+    if (role === "student") {
+      const ownTeam = teamArray().find(t => t.uid === myUid);
+      myTeamId = ownTeam ? ownTeam.id : "";
+    }
+
     render();
   };
 
@@ -176,7 +156,7 @@ function subscribe() {
 }
 
 // =====================================
-// CREATE ROOM - TEACHER
+// CREATE ROOM
 // =====================================
 
 async function createRoom() {
@@ -191,9 +171,12 @@ async function createRoom() {
     roomCode = code();
     roomRef = db.ref("rooms/" + roomCode);
 
-    const initial = {
+    // เขียน UID ครูก่อน เพื่อให้ Rules อนุญาตข้อมูลส่วนอื่น
+    await roomRef.child("teacherUid").set(user.uid);
+
+    // เขียนข้อมูลห้องแยกจาก teacherUid
+    await roomRef.update({
       status: "lobby",
-      teacherUid: user.uid,
       createdAt: Date.now(),
       teams: {},
       turnIndex: 0,
@@ -202,16 +185,11 @@ async function createRoom() {
       question: null,
       usedQuestions: {},
       boardSize: BOARD.length
-    };
-
-    await roomRef.set(initial);
+    });
 
     subscribe();
 
     $("roomCodeLabel").textContent = roomCode;
-    $("teacherLobbyControls").classList.remove("hidden");
-    $("studentJoinForm").classList.add("hidden");
-
     $("lobbyTitle").textContent = "ห้องเกมของคุณพร้อมแล้ว";
     $("lobbyInstructions").textContent =
       "แชร์รหัสห้องให้นักเรียน แล้วรอทีมเข้าร่วม";
@@ -228,7 +206,7 @@ async function createRoom() {
 }
 
 // =====================================
-// JOIN ROOM - STUDENT
+// JOIN ROOM
 // =====================================
 
 async function joinRoom() {
@@ -258,24 +236,28 @@ async function joinRoom() {
 
     const data = snapshot.val();
 
-    if (data.status !== "lobby") {
-      toast("ห้องนี้ไม่ได้อยู่ในช่วงรับสมัครทีม");
+    if (data.status === "closed") {
+      toast("ห้องนี้ปิดแล้ว");
       return;
     }
 
     role = "student";
-    myTeamId = "";
+
+    const existingTeam = Object.entries(data.teams || {})
+      .find(([id, team]) => team.uid === myUid);
+
+    myTeamId = existingTeam ? existingTeam[0] : "";
 
     $("roomCodeLabel").textContent = roomCode;
-    $("teacherLobbyControls").classList.add("hidden");
-    $("studentJoinForm").classList.remove("hidden");
+    $("lobbyTitle").textContent = myTeamId
+      ? "คุณเข้าร่วมทีมแล้ว"
+      : "เข้าร่วมทีม";
 
-    $("lobbyTitle").textContent = "เข้าร่วมทีม";
     $("lobbyInstructions").textContent =
       "กรอกชื่อทีมและสมาชิกเพื่อเข้าร่วมเกม";
 
     subscribe();
-    show("lobbyView");
+    show(data.status === "game" ? "gameView" : "lobbyView");
 
   } catch (error) {
     console.error(error);
@@ -286,17 +268,16 @@ async function joinRoom() {
 }
 
 // =====================================
-// JOIN TEAM - STUDENT
+// JOIN TEAM
 // =====================================
 
 async function joinTeam() {
   if (!roomRef || role !== "student" || busy) return;
 
   const name = $("teamName").value.trim();
-
   const members = $("memberNames").value
     .split(",")
-    .map(name => name.trim())
+    .map(x => x.trim())
     .filter(Boolean);
 
   if (!name) {
@@ -309,15 +290,18 @@ async function joinTeam() {
     return;
   }
 
-  if (teamArray().some(team =>
-    team.name.toLowerCase() === name.toLowerCase()
-  )) {
+  if (room.status !== "lobby") {
+    toast("ห้องนี้ปิดรับทีมแล้ว");
+    return;
+  }
+
+  if (teamArray().some(t => t.name.toLowerCase() === name.toLowerCase())) {
     toast("มีชื่อทีมนี้แล้ว กรุณาใช้ชื่ออื่น");
     return;
   }
 
-  if (room.status !== "lobby") {
-    toast("ห้องนี้ปิดรับทีมแล้ว");
+  if (teamArray().some(t => t.uid === myUid)) {
+    toast("บัญชีนี้เข้าร่วมทีมไปแล้ว");
     return;
   }
 
@@ -330,22 +314,24 @@ async function joinTeam() {
       Date.now().toString(36) +
       Math.random().toString(36).slice(2, 7);
 
-    const teamData = {
+    const teamRef = roomRef.child("teams/" + id);
+
+    // เขียน UID ก่อน
+    await teamRef.child("uid").set(user.uid);
+
+    // จากนั้นเขียนข้อมูลทีมทีละฟิลด์
+    await teamRef.update({
       name,
       members,
-      uid: user.uid,
-      position: 0,
-      score: 0,
       color: COLORS[teamArray().length % COLORS.length],
-      joinedAt: Date.now()
-    };
-
-    await roomRef.child("teams/" + id).set(teamData);
+      joinedAt: Date.now(),
+      position: 0,
+      score: 0
+    });
 
     myTeamId = id;
 
     $("studentJoinForm").classList.add("hidden");
-
     toast("เข้าร่วมทีมสำเร็จ");
 
   } catch (error) {
@@ -357,7 +343,7 @@ async function joinTeam() {
 }
 
 // =====================================
-// RENDER ROOM
+// RENDER
 // =====================================
 
 function render() {
@@ -371,46 +357,31 @@ function render() {
   $("teamCount").textContent = teams.length + " ทีม";
 
   $("teamList").innerHTML = teams.length
-    ? teams.map(team => `
+    ? teams.map(t => `
       <div class="team-item">
         <span>
-          <i class="team-dot" style="background:${team.color}"></i>
-          ${esc(team.name)}
+          <i class="team-dot" style="background:${t.color}"></i>
+          ${esc(t.name)}
         </span>
-        <small>${(team.members || []).length} คน</small>
+        <small>${(t.members || []).length} คน</small>
       </div>
     `).join("")
     : '<div class="empty">กำลังรอทีมเข้าร่วม...</div>';
 
-  $("startGame").disabled =
-    !isTeacher() || teams.length < 1;
-
-  $("teacherLobbyControls").classList.toggle(
-    "hidden",
-    !isTeacher()
-  );
-
+  $("teacherLobbyControls").classList.toggle("hidden", !isTeacher());
   $("studentJoinForm").classList.toggle(
     "hidden",
     role !== "student" || !!myTeamId
   );
 
-  if (room.status === "lobby") {
-    show("lobbyView");
-  }
+  $("startGame").disabled = !isTeacher() || teams.length < 1;
+
+  if (room.status === "lobby") show("lobbyView");
 
   if (room.status === "game") {
     show("gameView");
-
-    $("teacherControls").classList.toggle(
-      "hidden",
-      !isTeacher()
-    );
-
-    $("studentControls").classList.toggle(
-      "hidden",
-      role !== "student"
-    );
+    $("teacherControls").classList.toggle("hidden", !isTeacher());
+    $("studentControls").classList.toggle("hidden", role !== "student");
   }
 
   if (room.status === "closed") {
@@ -424,20 +395,18 @@ function render() {
   renderBoard(teams);
   renderTeamSelect(teams);
 
-  const active = teams.find(team =>
-    team.id === room.activeTeamId
-  );
+  const active = teams.find(t => t.id === room.activeTeamId);
 
   $("turnLabel").textContent = active
     ? "ตาของ " + active.name
     : "รอเลือกทีม";
 
   $("diceResult").textContent = room.lastRoll
-    ? `ได้ ${room.lastRoll} แต้ม`
+    ? "ได้ " + room.lastRoll + " แต้ม"
     : "พร้อมทอยเต๋า";
 
   $("diceFace").textContent = room.lastRoll
-    ? ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][room.lastRoll - 1]
+    ? ["⚀","⚁","⚂","⚃","⚄","⚅"][room.lastRoll - 1]
     : "⚄";
 
   if (room.question) {
@@ -448,12 +417,13 @@ function render() {
   }
 
   if (role === "student") {
-    const isMyTeam = room.question?.teamId === myTeamId;
-    const submitted = room.question?.submissions?.[myTeamId];
+    const q = room.question;
+    const ownTurn = q && q.teamId === myTeamId;
+    const submitted = ownTurn && q.submissions?.[myTeamId];
 
-    $("studentStatus").textContent = !room.question
+    $("studentStatus").textContent = !q
       ? "รอครูเปิดคำถาม..."
-      : isMyTeam
+      : ownTurn
         ? (submitted ? "ส่งคำตอบแล้ว รอครูตรวจ" : "ถึงตาทีมของคุณ")
         : "กำลังเล่นทีมอื่น รอคิวทีมของคุณ";
   }
@@ -469,17 +439,16 @@ function renderScores(teams) {
   );
 
   $("scoreList").innerHTML = sorted.length
-    ? sorted.map((team, index) => `
+    ? sorted.map((t, i) => `
       <div class="score-row">
         <span class="score-name">
-          <i class="team-dot" style="background:${team.color}"></i>
+          <i class="team-dot" style="background:${t.color}"></i>
           <span>
-            ${index === 0 ? "👑 " : ""}
-            ${esc(team.name)}
-            <small>${team.position || 0}/${BOARD.length - 1} ช่อง</small>
+            ${i === 0 ? "👑 " : ""}${esc(t.name)}
+            <small>${t.position || 0}/${BOARD.length - 1} ช่อง</small>
           </span>
         </span>
-        <strong>${team.score || 0}</strong>
+        <strong>${t.score || 0}</strong>
       </div>
     `).join("")
     : '<div class="empty">ยังไม่มีทีม</div>';
@@ -487,21 +456,21 @@ function renderScores(teams) {
 
 function renderTeamSelect(teams) {
   const select = $("activeTeam");
-  const oldValue = select.value;
+  const old = select.value;
 
-  select.innerHTML = teams.map(team => `
-    <option value="${team.id}">${esc(team.name)}</option>
-  `).join("");
+  select.innerHTML = teams.map(t =>
+    `<option value="${t.id}">${esc(t.name)}</option>`
+  ).join("");
 
-  if (teams.some(team => team.id === oldValue)) {
-    select.value = oldValue;
+  if (teams.some(t => t.id === old)) {
+    select.value = old;
   } else if (room.activeTeamId) {
     select.value = room.activeTeamId;
   }
 }
 
 // =====================================
-// GAME BOARD
+// BOARD
 // =====================================
 
 function renderBoard(teams) {
@@ -516,10 +485,7 @@ function renderBoard(teams) {
   for (let r = 4; r > 0; r--) coords.push([r, 0]);
 
   const map = {};
-
-  coords.forEach((point, index) => {
-    map[point.join(",")] = index;
-  });
+  coords.forEach((p, i) => map[p.join(",")] = i);
 
   for (let r = 0; r < 6; r++) {
     for (let c = 0; c < 6; c++) {
@@ -550,24 +516,18 @@ function renderBoard(teams) {
         } else {
           cell.style.visibility = "hidden";
         }
-
       } else {
         cell.className = "tile " + tile[0];
 
         cell.innerHTML = `
-          <span class="tile-num">
-            ${String(index + 1).padStart(2, "0")}
-          </span>
+          <span class="tile-num">${String(index + 1).padStart(2, "0")}</span>
           <span class="tile-icon">${ICONS[tile[0]]}</span>
           <span class="tile-name">${tile[1]}</span>
           <div class="tokens">
-            ${teams
-              .filter(team => (team.position || 0) === index)
-              .map(team => `
-                <i class="token"
-                  style="background:${team.color}"
-                  title="${esc(team.name)}">
-                </i>
+            ${teams.filter(t => (t.position || 0) === index)
+              .map(t => `
+                <i class="token" style="background:${t.color}"
+                  title="${esc(t.name)}"></i>
               `).join("")}
           </div>
         `;
@@ -583,12 +543,11 @@ function renderBoard(teams) {
 // =====================================
 
 async function startGame() {
-  if (!isTeacher() || !roomRef) return;
+  if (!isTeacher() || busy) return;
 
   const teams = teamArray();
-
   if (!teams.length) {
-    toast("ยังไม่มีทีมเข้าร่วม");
+    toast("ยังไม่มีทีม");
     return;
   }
 
@@ -602,10 +561,9 @@ async function startGame() {
     });
 
     toast("เริ่มเกมแล้ว");
-
   } catch (error) {
     console.error(error);
-    toast("เริ่มเกมไม่สำเร็จ");
+    toast("เริ่มเกมไม่สำเร็จ: " + error.message);
   }
 }
 
@@ -614,7 +572,7 @@ async function startGame() {
 // =====================================
 
 async function rollDice() {
-  if (!isTeacher() || !roomRef || busy) return;
+  if (!isTeacher() || busy) return;
 
   if (room.question) {
     toast("กรุณาตรวจคำตอบก่อน");
@@ -622,8 +580,9 @@ async function rollDice() {
   }
 
   const id = $("activeTeam").value;
+  const team = room.teams?.[id];
 
-  if (!id || !room.teams?.[id]) {
+  if (!team) {
     toast("ยังไม่มีทีม");
     return;
   }
@@ -632,8 +591,6 @@ async function rollDice() {
 
   try {
     const roll = Math.floor(Math.random() * 6) + 1;
-    const team = room.teams[id];
-
     const position = Math.min(
       BOARD.length - 1,
       (team.position || 0) + roll
@@ -648,66 +605,57 @@ async function rollDice() {
     };
 
     const pool = (window.ENERGY_QUESTIONS || [])
-      .filter(question => question.type === tile[0]);
+      .filter(q => q.type === tile[0]);
 
-    if (pool.length > 0) {
+    if (pool.length) {
       const used = room.usedQuestions || {};
 
-      const available = pool.filter((question, index) => {
-        const questionIndex = window.ENERGY_QUESTIONS.indexOf(question);
-        return !used[tile[0] + "_" + questionIndex];
+      const available = pool.filter(q => {
+        const qi = window.ENERGY_QUESTIONS.indexOf(q);
+        return !used[tile[0] + "_" + qi];
       });
 
-      const question = available.length
+      const q = available.length
         ? available[Math.floor(Math.random() * available.length)]
         : pool[Math.floor(Math.random() * pool.length)];
 
-      const questionIndex =
-        window.ENERGY_QUESTIONS.indexOf(question);
+      const qi = window.ENERGY_QUESTIONS.indexOf(q);
 
-      const questionData = {
-        ...question,
-        points: tile[0] === "challenge"
-          ? roll * 2
-          : question.points,
+      updates.question = {
+        ...q,
+        points: tile[0] === "challenge" ? roll * 2 : q.points,
         id: "q" + Date.now(),
         teamId: id,
         teamName: team.name,
-        usedKey: tile[0] + "_" + questionIndex,
+        usedKey: tile[0] + "_" + qi,
         submissions: {}
       };
-
-      updates.question = questionData;
     }
 
     await roomRef.update(updates);
-
     toast("ทอยได้ " + roll + " แต้ม");
 
   } catch (error) {
     console.error(error);
-    toast("ทอยเต๋าไม่สำเร็จ");
+    toast("ทอยเต๋าไม่สำเร็จ: " + error.message);
   } finally {
     busy = false;
   }
 }
 
 // =====================================
-// QUESTION MODAL
+// QUESTION DISPLAY
 // =====================================
 
-function openQuestionUI(question) {
-  currentQuestion = question;
+function openQuestionUI(q) {
+  currentQuestion = q;
 
-  $("questionCategory").textContent = question.category || "คำถามพลังงาน";
-  $("questionNumber").textContent =
-    "QUESTION • " + question.id.slice(-5);
-
-  $("questionText").textContent = question.q;
+  $("questionCategory").textContent = q.category || "คำถามพลังงาน";
+  $("questionNumber").textContent = "QUESTION • " + q.id.slice(-5);
+  $("questionText").textContent = q.q;
 
   const teacher = isTeacher();
-  const myTurn = role === "student" &&
-    question.teamId === myTeamId;
+  const myTurn = role === "student" && q.teamId === myTeamId;
 
   $("teacherAnswer").classList.toggle("hidden", !teacher);
   $("studentAnswer").classList.toggle("hidden", !myTurn);
@@ -715,28 +663,24 @@ function openQuestionUI(question) {
   $("answerArea").innerHTML = "";
 
   $("answerKey").textContent = teacher
-    ? "แนวคำตอบ: " + question.a +
-      (question.points > 0 ? " • " + question.points + " คะแนน" : "")
+    ? "แนวคำตอบ: " + q.a + (q.points > 0 ? " • " + q.points + " คะแนน" : "")
     : "";
 
   if (myTurn) {
-    const submission = question.submissions?.[myTeamId];
+    const sub = q.submissions?.[myTeamId];
 
-    $("submittedMessage").textContent = submission
-      ? "ส่งแล้ว: " + submission.answer
+    $("submittedMessage").textContent = sub
+      ? "ส่งแล้ว: " + sub.answer
       : "";
 
-    $("submitAnswer").disabled = !!submission;
+    $("submitAnswer").disabled = !!sub;
   }
-
-  $("markCorrect").disabled = !teacher;
-  $("markWrong").disabled = !teacher;
 
   $("questionModal").classList.remove("hidden");
 }
 
 // =====================================
-// STUDENT SUBMIT ANSWER
+// SUBMIT ANSWER
 // =====================================
 
 async function submitAnswer() {
@@ -776,22 +720,22 @@ async function submitAnswer() {
 
   } catch (error) {
     console.error(error);
-    toast("ส่งคำตอบไม่สำเร็จ");
+    toast("ส่งคำตอบไม่สำเร็จ: " + error.message);
   }
 }
 
 // =====================================
-// TEACHER JUDGE ANSWER
+// TEACHER JUDGE
 // =====================================
 
 async function judge(correct) {
   if (!isTeacher() || !currentQuestion || busy) return;
 
-  const question = currentQuestion;
-  const teamId = question.teamId;
+  const q = currentQuestion;
+  const teamId = q.teamId;
 
   if (!room.teams?.[teamId]) {
-    toast("ไม่พบทีมที่กำลังตอบคำถาม");
+    toast("ไม่พบทีม");
     return;
   }
 
@@ -803,36 +747,29 @@ async function judge(correct) {
     };
 
     if (correct) {
-      const oldScore = room.teams[teamId].score || 0;
-
       updates["teams/" + teamId + "/score"] =
-        oldScore + (question.points || 0);
+        (room.teams[teamId].score || 0) + (q.points || 0);
     }
 
-    if (question.usedKey) {
-      updates["usedQuestions/" + question.usedKey] = true;
+    if (q.usedKey) {
+      updates["usedQuestions/" + q.usedKey] = true;
     }
 
-    if (question.move) {
-      const oldPosition = room.teams[teamId].position || 0;
-
+    if (q.move) {
       updates["teams/" + teamId + "/position"] =
         Math.min(
           BOARD.length - 1,
-          oldPosition + question.move
+          (room.teams[teamId].position || 0) + q.move
         );
     }
 
     await roomRef.update(updates);
 
-    toast(correct
-      ? "บันทึกคะแนนแล้ว"
-      : "บันทึกคำตอบไม่ถูกต้อง"
-    );
+    toast(correct ? "บันทึกคะแนนแล้ว" : "บันทึกคำตอบไม่ถูกต้อง");
 
   } catch (error) {
     console.error(error);
-    toast("ตรวจคำตอบไม่สำเร็จ");
+    toast("ตรวจคำตอบไม่สำเร็จ: " + error.message);
   } finally {
     busy = false;
   }
@@ -843,7 +780,7 @@ async function judge(correct) {
 // =====================================
 
 async function nextTurn() {
-  if (!isTeacher() || !roomRef) return;
+  if (!isTeacher() || busy) return;
 
   if (room.question) {
     toast("กรุณาตรวจคำตอบก่อนเปลี่ยนทีม");
@@ -851,13 +788,9 @@ async function nextTurn() {
   }
 
   const teams = teamArray();
-
   if (!teams.length) return;
 
-  let index = teams.findIndex(team =>
-    team.id === room.activeTeamId
-  );
-
+  let index = teams.findIndex(t => t.id === room.activeTeamId);
   index = (index + 1) % teams.length;
 
   try {
@@ -866,7 +799,6 @@ async function nextTurn() {
       lastRoll: 0,
       question: null
     });
-
   } catch (error) {
     console.error(error);
     toast("เปลี่ยนทีมไม่สำเร็จ");
@@ -878,36 +810,35 @@ async function nextTurn() {
 // =====================================
 
 async function resetGame() {
-  if (!isTeacher() || !roomRef) return;
+  if (!isTeacher() || busy) return;
 
   if (!confirm("เริ่มเกมใหม่และล้างคะแนน/ตำแหน่งทุกทีมใช่หรือไม่?")) {
     return;
   }
 
-  const teams = {};
-
-  teamArray().forEach(team => {
-    teams[team.id] = {
-      ...team,
-      position: 0,
-      score: 0
-    };
-  });
+  busy = true;
 
   try {
-    await roomRef.update({
-      teams,
+    const updates = {
       turnIndex: 0,
       lastRoll: 0,
       question: null,
       usedQuestions: {}
+    };
+
+    teamArray().forEach(t => {
+      updates["teams/" + t.id + "/position"] = 0;
+      updates["teams/" + t.id + "/score"] = 0;
     });
 
+    await roomRef.update(updates);
     toast("เริ่มเกมใหม่แล้ว");
 
   } catch (error) {
     console.error(error);
-    toast("เริ่มเกมใหม่ไม่สำเร็จ");
+    toast("เริ่มเกมใหม่ไม่สำเร็จ: " + error.message);
+  } finally {
+    busy = false;
   }
 }
 
@@ -916,7 +847,7 @@ async function resetGame() {
 // =====================================
 
 async function closeRoom() {
-  if (!isTeacher() || !roomRef) return;
+  if (!isTeacher() || busy) return;
 
   if (!confirm("ปิดห้องเกมนี้ใช่หรือไม่?")) return;
 
@@ -931,7 +862,7 @@ async function closeRoom() {
 
   } catch (error) {
     console.error(error);
-    toast("ปิดห้องไม่สำเร็จ");
+    toast("ปิดห้องไม่สำเร็จ: " + error.message);
   }
 }
 
